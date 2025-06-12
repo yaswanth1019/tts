@@ -1,11 +1,10 @@
 import io
 from flask import Flask, request, send_file, jsonify
-import pyttsx3
+from gtts import gTTS
 import tempfile
 import os
 
 app = Flask(__name__)
-engine = pyttsx3.init()
 
 @app.route('/tts', methods=['POST'])
 def text_to_speech():
@@ -14,14 +13,10 @@ def text_to_speech():
     if not text:
         return jsonify({"error": "No text provided"}), 400
 
-    with tempfile.NamedTemporaryFile(suffix=".wav", delete=False) as tf:
+    with tempfile.NamedTemporaryFile(suffix=".mp3", delete=False) as tf:
+        tts = gTTS(text=text, lang='en')
+        tts.save(tf.name)
         temp_path = tf.name
-
-    engine.save_to_file(text, temp_path)
-    engine.runAndWait()
-
-    if not os.path.exists(temp_path):
-        return jsonify({"error": "TTS generation failed"}), 500
 
     with open(temp_path, 'rb') as f:
         audio_bytes = f.read()
@@ -29,11 +24,10 @@ def text_to_speech():
 
     return send_file(
         io.BytesIO(audio_bytes),
-        mimetype='audio/wav',
+        mimetype='audio/mpeg',
         as_attachment=False,
-        download_name='tts.wav'
+        download_name='tts.mp3'
     )
 
 if __name__ == '__main__':
-    app.run(host='0.0.0.0', port=5000, debug=True)
-
+    app.run(host='0.0.0.0', port=5000)
